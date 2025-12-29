@@ -37,3 +37,6 @@ This project simulates a PLC scan cycle:
 2. Apply safety priority logic (E-Stop > Fault > Stop > Reset > Start)
 3. Update outputs (motor ON/OFF) and system state
 4. Clear momentary inputs for the next scan
+
+## Diagram
+- [Motor Control State Diagram](diagrams/state_diagram.md)
