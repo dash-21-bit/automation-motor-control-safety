@@ -1,6 +1,4 @@
 from safety_logic import SafetySystem
-
-
 class MotorController:
     """
     Simple PLC-style motor controller using safety interlocks.
@@ -41,15 +39,19 @@ class MotorController:
         self.state = "FAULT"
         print("[FAULT] Fault latched. Motor OFF.")
 
-    def reset(self):
-        # Reset clears fault latch only; E-stop must be physically released
-        if self.safety.emergency_stop:
-            print("[RESET BLOCKED] Release E-Stop first.")
-            return
-        self.safety.reset_fault()
-        self.state = "IDLE"
-        print("[RESET] Fault cleared. Ready to start.")
+def reset(self):
+    if self.safety.emergency_stop:
+        print("[RESET BLOCKED] Release E-Stop first.")
+        return
 
+    if self.safety.fault_latched:
+        self.safety.reset_fault()
+        print("[RESET] Fault cleared. Ready to start.")
+    else:
+        print("[RESET] No fault active. System ready.")
+
+    self.state = "IDLE"
+    
 
 def demo_sequence():
     mc = MotorController()
