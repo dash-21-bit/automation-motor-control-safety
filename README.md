@@ -31,3 +31,9 @@ python src/motor_control.py#
 - Normal start/stop
 - Fault latching and reset (restart blocked until reset)
 - Emergency stop override (restart blocked until E-stop released)
+## How it Works (PLC Scan Cycle)
+This project simulates a PLC scan cycle:
+1. Read input signals (start/stop/reset)
+2. Apply safety priority logic (E-Stop > Fault > Stop > Reset > Start)
+3. Update outputs (motor ON/OFF) and system state
+4. Clear momentary inputs for the next scan
