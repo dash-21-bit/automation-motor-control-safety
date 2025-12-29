@@ -27,3 +27,7 @@ It demonstrates start/stop control, emergency stop behaviour, fault latching, an
 ## Run
 ```bash
 python src/motor_control.py#
+## Test Scenarios
+- Normal start/stop
+- Fault latching and reset (restart blocked until reset)
+- Emergency stop override (restart blocked until E-stop released)
