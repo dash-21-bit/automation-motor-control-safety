@@ -1,50 +1,66 @@
-from safety_logic import SafetySystem
+from src.safety_logic import SafetySystem
+
+
 class MotorController:
     """
-    Simple PLC-style motor controller using safety interlocks.
+    PLC-style motor controller using safety interlocks.
     Priority order:
       1) E-Stop
       2) Fault
       3) Stop
-      4) Start
+      4) Reset
+      5) Start
     """
 
     def __init__(self):
         self.safety = SafetySystem()
         self.motor_running = False
         self.state = "IDLE"
+
+        # Momentary input signals (like PLC inputs)
         self.start_button = False
         self.stop_button = False
         self.reset_button = False
 
     def scan_cycle(self):
-    # Priority order
+        """Simulates a PLC scan cycle: read inputs -> apply priority logic -> update outputs"""
+
+        # 1) Emergency stop has highest priority
         if self.safety.emergency_stop:
             self.motor_running = False
             self.state = "EMERGENCY_STOP"
-        return
+            self._clear_buttons()
+            return
 
+        # 2) Fault latching has second priority
         if self.safety.fault_latched:
             self.motor_running = False
             self.state = "FAULT"
-        return
+            # Allow reset button to clear fault (if E-stop is not active)
+            if self.reset_button:
+                self.reset()
+            self._clear_buttons()
+            return
 
+        # 3) Normal stop
         if self.stop_button:
             self.stop()
 
+        # 4) Reset (when no fault latched, reset just returns to IDLE)
         if self.reset_button:
             self.reset()
 
+        # 5) Start
         if self.start_button:
             self.start()
 
-    # clear momentary buttons after scan (like PLC)
-    self.start_button = False
-    self.stop_button = False
-    self.reset_button = False
+        # Clear momentary inputs after scan
+        self._clear_buttons()
 
-
-
+    def _clear_buttons(self):
+        self.start_button = False
+        self.stop_button = False
+        self.reset_button = False
 
     def start(self):
         if self.safety.is_safe_to_run():
@@ -65,49 +81,65 @@ class MotorController:
         self.state = "EMERGENCY_STOP"
         print("[E-STOP] Emergency stop activated. Motor OFF.")
 
+    def release_emergency_stop(self):
+        self.safety.clear_emergency_stop()
+        print("[E-STOP] Emergency stop released")
+
     def fault_trip(self):
         self.safety.trigger_fault()
         self.motor_running = False
         self.state = "FAULT"
         print("[FAULT] Fault latched. Motor OFF.")
 
-def reset(self):
-    if self.safety.emergency_stop:
-        print("[RESET BLOCKED] Release E-Stop first.")
-        return
+    def reset(self):
+        if self.safety.emergency_stop:
+            print("[RESET BLOCKED] Release E-Stop first.")
+            return
 
-    if self.safety.fault_latched:
-        self.safety.reset_fault()
-        print("[RESET] Fault cleared. Ready to start.")
-    else:
-        print("[RESET] No fault active. System ready.")
+        if self.safety.fault_latched:
+            self.safety.reset_fault()
+            print("[RESET] Fault cleared. Ready to start.")
+        else:
+            print("[RESET] No fault active. System ready.")
 
-    self.state = "IDLE"
-    
+        self.state = "IDLE"
+
 
 def demo_sequence():
     mc = MotorController()
 
-    print("\n--- Normal Start/Stop ---")
-    mc.start()
-    mc.stop()
+    print("\n--- Normal Start/Stop (Scan Cycle) ---")
+    mc.start_button = True
+    mc.scan_cycle()
+    mc.stop_button = True
+    mc.scan_cycle()
 
-    print("\n--- Fault Latching Demo ---")
-    mc.start()
+    print("\n--- Fault Latching Demo (Scan Cycle) ---")
+    mc.start_button = True
+    mc.scan_cycle()
     mc.fault_trip()
-    mc.start()          # should be blocked
-    mc.reset()
-    mc.start()          # should start
+    mc.start_button = True
+    mc.scan_cycle()  # should remain blocked
 
-    print("\n--- Emergency Stop Demo ---")
+    mc.reset_button = True
+    mc.scan_cycle()  # clears fault
+
+    mc.start_button = True
+    mc.scan_cycle()  # should start
+
+    print("\n--- Emergency Stop Demo (Scan Cycle) ---")
     mc.emergency_stop()
-    mc.start()          # blocked
-    mc.safety.clear_emergency_stop()
-    mc.reset()
-    mc.start()          # should start
+    mc.start_button = True
+    mc.scan_cycle()  # blocked
+
+    mc.release_emergency_stop()
+    mc.reset_button = True
+    mc.scan_cycle()
+
     mc.start_button = True
     mc.scan_cycle()
 
 
 if __name__ == "__main__":
     demo_sequence()
+
