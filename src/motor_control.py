@@ -13,6 +13,38 @@ class MotorController:
         self.safety = SafetySystem()
         self.motor_running = False
         self.state = "IDLE"
+        self.start_button = False
+        self.stop_button = False
+        self.reset_button = False
+
+    def scan_cycle(self):
+    # Priority order
+        if self.safety.emergency_stop:
+            self.motor_running = False
+            self.state = "EMERGENCY_STOP"
+        return
+
+        if self.safety.fault_latched:
+            self.motor_running = False
+            self.state = "FAULT"
+        return
+
+        if self.stop_button:
+            self.stop()
+
+        if self.reset_button:
+            self.reset()
+
+        if self.start_button:
+            self.start()
+
+    # clear momentary buttons after scan (like PLC)
+    self.start_button = False
+    self.stop_button = False
+    self.reset_button = False
+
+
+
 
     def start(self):
         if self.safety.is_safe_to_run():
@@ -73,6 +105,8 @@ def demo_sequence():
     mc.safety.clear_emergency_stop()
     mc.reset()
     mc.start()          # should start
+    mc.start_button = True
+    mc.scan_cycle()
 
 
 if __name__ == "__main__":
